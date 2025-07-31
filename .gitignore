@@ -1,0 +1,56 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+build/
+
+# Gradle files
+.gradle/
+gradle-app.setting
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log Files
+*.log
+
+# Android Studio files
+.idea/
+*.iml
+.navigation/
+captures/
+.cxx/
+*.keystore
+
+# Firebase
+google-services.json
+
+# Keystore files
+*.jks
+
+# External native build folder
+.externalNativeBuild
+
+# Google Services (e.g. APIs or Firebase)
+**/google-services.json
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# Sensitive info
+app/src/main/res/values/secrets.xml
