@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">HonestRating</string>
+    <string name="onboarding_title_1">Добро пожаловать!</string>
+    <string name="onboarding_desc_1">Оценивайте компании анонимно и честно</string>
+    <string name="onboarding_title_2">Найдите лучшие места</string>
+    <string name="onboarding_desc_2">Ищите компании по отраслям и рейтингам</string>
+    <string name="onboarding_title_3">Начните сейчас</string>
+    <string name="onboarding_desc_3">Присоединяйтесь к сообществу честных отзывов</string>
+    <string name="next">Далее</string>
+    <string name="start">Начать</string>
 </resources>

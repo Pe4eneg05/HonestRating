@@ -18,9 +18,11 @@ fun AppNavigation() {
         composable("splash") {
             SplashScreen(navController)
         }
-        composable("onboarding") {  // ДОБАВЛЕНО
-            OnboardingScreen(navController) // Пока заглушка
+        composable("onboarding") {
+            OnboardingScreen(navController)
         }
-        // Добавим остальные экраны позже
+        composable("auth") {
+            OnboardingScreen(navController) // Пока заглушк
+        }
     }
 }

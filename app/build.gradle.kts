@@ -51,6 +51,11 @@ android {
 }
 
 dependencies {
+    implementation(libs.lottie.compose.v630)
+    implementation(libs.accompanist.pager)
+    implementation(libs.accompanist.pager.indicators)
+    implementation(libs.accompanist.systemuicontroller)
+
     // Core
     implementation(libs.androidx.core.ktx.v1130)
     implementation(libs.androidx.lifecycle.runtime.ktx.v270)
