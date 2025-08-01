@@ -8,4 +8,14 @@
     <string name="onboarding_desc_3">Присоединяйтесь к сообществу честных отзывов</string>
     <string name="next">Далее</string>
     <string name="start">Начать</string>
+
+    <string name="auth_title">Войдите в систему</string>
+    <string name="email_hint">Корпоративная почта</string>
+    <string name="password_hint">Пароль</string>
+    <string name="login_button">Войти</string>
+    <string name="register_button">Зарегистрироваться</string>
+    <string name="or">или</string>
+    <string name="email_error">Некорректный email</string>
+    <string name="password_error">Пароль должен содержать минимум 6 символов</string>
+    <string name="corporate_email_error">Требуется корпоративная почта</string>
 </resources>
