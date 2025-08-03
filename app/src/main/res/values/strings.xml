@@ -18,4 +18,16 @@
     <string name="email_error">Некорректный email</string>
     <string name="password_error">Пароль должен содержать минимум 6 символов</string>
     <string name="corporate_email_error">Требуется корпоративная почта</string>
+
+    <string name="verify_email_title">Проверьте почту и подтвердите аккаунт</string>
+    <string name="send_letter_button">Отправить письмо</string>
+    <string name="resend_in_button">Повторно через %1$d с</string>
+    <string name="check_verification_button">Проверить верификацию</string>
+    <string name="name_hint">Имя</string>
+    <string name="role_label">Роль:</string>
+    <string name="role_hr">HR</string>
+    <string name="role_employee">Сотрудник</string>
+    <string name="save_button">Сохранить</string>
+    <string name="saving">Сохраняю...</string>
+    <string name="avatar_content_description">Фото пользователя</string>
 </resources>

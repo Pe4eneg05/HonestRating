@@ -1,4 +1,4 @@
-package com.pechenegmobilecompanyltd.honestrating.ui
+package com.pechenegmobilecompanyltd.honestrating.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

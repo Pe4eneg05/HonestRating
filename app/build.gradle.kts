@@ -62,6 +62,11 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx:23.2.1")
     implementation("com.google.firebase:firebase-firestore-ktx:25.1.4")
     implementation("com.google.firebase:firebase-analytics-ktx:22.5.0")
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation(libs.androidx.compose.material3.material3)
+    implementation("androidx.compose.material3:material3:1.3.2")
+    implementation("com.github.skydoves:landscapist-glide:2.5.1")
+    implementation("com.valentinilk.shimmer:compose-shimmer:1.3.3")
 
     // Остальные зависимости
     implementation(libs.lottie.compose.v630)
@@ -88,6 +93,7 @@ dependencies {
 
     // Lottie
     implementation(libs.lottie.compose)
+    implementation(libs.firebase.storage)
 
     // Debug
     debugImplementation(libs.ui.tooling)

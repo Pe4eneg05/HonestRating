@@ -2,54 +2,86 @@ package com.pechenegmobilecompanyltd.honestrating.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.pechenegmobilecompanyltd.honestrating.ui.AuthViewModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.pechenegmobilecompanyltd.honestrating.ui.screens.AuthScreen
 import com.pechenegmobilecompanyltd.honestrating.ui.screens.HomeScreen
-import com.pechenegmobilecompanyltd.honestrating.ui.screens.OnboardingScreen
-import com.pechenegmobilecompanyltd.honestrating.ui.screens.SplashScreen
+import com.pechenegmobilecompanyltd.honestrating.ui.screens.ProfileScreen
+import com.pechenegmobilecompanyltd.honestrating.ui.screens.VerifyEmailScreen
+import com.pechenegmobilecompanyltd.honestrating.utils.SessionManager
+
+object Routes {
+    const val SPLASH = "splash"
+    const val AUTH = "auth"
+    const val VERIFY = "verify"
+    const val PROFILE = "profile"
+    const val HOME = "home"
+}
 
 @Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
-    val authViewModel: AuthViewModel = viewModel()
-    val authState by authViewModel.authState.collectAsState()
+fun AppNavigation(
+    navController: NavHostController,
+    auth: FirebaseAuth,
+    firestore: FirebaseFirestore,
+    sessionManager: SessionManager
+) {
+    NavHost(navController = navController, startDestination = Routes.SPLASH) {
 
-    LaunchedEffect(authState) {
-        when (authState) {
-            is AuthViewModel.AuthState.Authenticated -> {
-                navController.navigate("home") {
-                    popUpTo("splash") { inclusive = true }
+        composable(Routes.SPLASH) {
+            LaunchedEffect(Unit) {
+                val isLoggedIn = sessionManager.isLoggedIn()
+                val isEmailVerified = auth.currentUser?.isEmailVerified == true
+                if (isLoggedIn) {
+                    if (isEmailVerified) {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Routes.VERIFY) {
+                            popUpTo(Routes.SPLASH) { inclusive = true }
+                        }
+                    }
+                } else {
+                    navController.navigate(Routes.AUTH) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
                 }
             }
-            is AuthViewModel.AuthState.Unauthenticated -> {
-                navController.navigate("auth") {
-                    popUpTo("splash") { inclusive = true }
-                }
-            }
-            else -> { /* Loading */ }
         }
-    }
 
-    NavHost(
-        navController = navController,
-        startDestination = "splash"
-    ) {
-        composable("splash") {
-            SplashScreen(navController)
+        composable(Routes.AUTH) {
+            // Здесь параметр navController передаём в AuthScreen
+            AuthScreen(navController = navController, auth = auth)
         }
-        composable("onboarding") {
-            OnboardingScreen(navController)
+
+        composable(Routes.VERIFY) {
+            VerifyEmailScreen(
+                auth = auth,
+                onVerified = {
+                    sessionManager.saveLogin()
+                    navController.navigate(Routes.PROFILE) {
+                        popUpTo(Routes.VERIFY) { inclusive = true }
+                    }
+                }
+            )
         }
-        composable("auth") {
-            AuthScreen(navController)
+
+        composable(Routes.PROFILE) {
+            ProfileScreen(
+                auth = auth,
+                firestore = firestore,
+                onComplete = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.PROFILE) { inclusive = true }
+                    }
+                }
+            )
         }
-        composable("home") {
+
+        composable(Routes.HOME) {
             HomeScreen(navController)
         }
     }

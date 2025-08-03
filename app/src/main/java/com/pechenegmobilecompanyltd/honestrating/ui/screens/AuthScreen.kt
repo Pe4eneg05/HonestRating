@@ -23,6 +23,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import com.google.firebase.auth.FirebaseAuth
 import com.pechenegmobilecompanyltd.honestrating.R
 import com.pechenegmobilecompanyltd.honestrating.ui.components.AnimatedTextField
 import com.pechenegmobilecompanyltd.honestrating.ui.theme.PrimaryColor
@@ -35,7 +37,10 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AuthScreen(navController: NavController) {
+fun AuthScreen(
+    navController: NavHostController,
+    auth: FirebaseAuth
+) {
 
     val emailErrorText = stringResource(R.string.email_error)
     val corporateErrorText = stringResource(R.string.corporate_email_error)
@@ -168,7 +173,7 @@ fun AuthScreen(navController: NavController) {
                                     .addOnCompleteListener { task ->
                                         isLoading = false
                                         if (task.isSuccessful) {
-                                            navController.navigate("home") {
+                                            navController.navigate("verify") {
                                                 popUpTo("auth") { inclusive = true }
                                             }
                                         } else {
@@ -185,7 +190,7 @@ fun AuthScreen(navController: NavController) {
                                         if (task.isSuccessful) {
                                             // Создаем профиль пользователя в Firestore
                                             createUserProfile(auth.currentUser?.uid, email)
-                                            navController.navigate("home") {
+                                            navController.navigate("verify") {
                                                 popUpTo("auth") { inclusive = true }
                                             }
                                         } else {
