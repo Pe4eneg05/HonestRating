@@ -5,8 +5,12 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -18,8 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,7 +49,6 @@ fun AuthScreen(
     navController: NavHostController,
     auth: FirebaseAuth
 ) {
-
     val emailErrorText = stringResource(R.string.email_error)
     val corporateErrorText = stringResource(R.string.corporate_email_error)
 
@@ -52,193 +59,214 @@ fun AuthScreen(
     var emailErrorMessage by remember { mutableStateOf("") }
     var isLoginMode by remember { mutableStateOf(true) }
     var isLoading by remember { mutableStateOf(false) }
-
     val focusManager = LocalFocusManager.current
     val passwordFocusRequester = remember { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
 
     // Firebase Auth
-    val auth = FirebaseAuthManager.auth
+    val authCore = FirebaseAuthManager.auth
 
     // Проверка текущего пользователя
     LaunchedEffect(Unit) {
-        if (auth.currentUser != null) {
+        if (authCore.currentUser != null) {
             navController.navigate("home") {
                 popUpTo("auth") { inclusive = true }
             }
         }
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = if (isLoginMode) stringResource(R.string.login_button)
-                        else stringResource(R.string.register_button),
-                        style = MaterialTheme.typography.headlineSmall
+    // === ФОН ===
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.background
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        navController.navigate("onboarding") {
-                            popUpTo("auth") { inclusive = true }
-                        }
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Column(
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
             modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(horizontal = 32.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(22.dp)
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(8.dp),
+            shape = RoundedCornerShape(20)
         ) {
-            // Анимированное появление формы
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Поле email
-                    AnimatedTextField(
-                        value = email,
-                        onValueChange = {
-                            email = it
-                            emailError = false
-                        },
-                        label = stringResource(R.string.email_hint),
-                        icon = Icons.Default.Email,
-                        isError = emailError,
-                        errorMessage = emailErrorMessage
-                    )
-
-                    // Поле пароля
-                    AnimatedTextField(
-                        value = password,
-                        onValueChange = {
-                            password = it
-                            passwordError = false
-                        },
-                        label = stringResource(R.string.password_hint),
-                        icon = Icons.Default.Lock,
-                        isPassword = true,
-                        isError = passwordError,
-                        errorMessage = stringResource(R.string.password_error),
-                        modifier = Modifier.focusRequester(passwordFocusRequester)
-                    )
-
-                    // Кнопка входа/регистрации
-                    Button(
-                        onClick = {
-                            focusManager.clearFocus()
-
-                            // Валидация email
-                            if (!isValidEmail(email)) {
-                                emailError = true
-                                emailErrorMessage = emailErrorText
-                                return@Button
-                            }
-
-                            // Проверка корпоративного email
-                            if (isValidCorporateEmail(email)) {
-                                emailError = true
-                                emailErrorMessage = corporateErrorText
-                                return@Button
-                            }
-
-                            // Валидация пароля
-                            if (!isValidPassword(password)) {
-                                passwordError = true
-                                return@Button
-                            }
-
-                            // Запуск процесса аутентификации
-                            isLoading = true
-                            // Аутентификация через Firebase
-                            if (isLoginMode) {
-                                // Вход
-                                auth.signInWithEmailAndPassword(email, password)
-                                    .addOnCompleteListener { task ->
-                                        isLoading = false
-                                        if (task.isSuccessful) {
-                                            navController.navigate("verify") {
-                                                popUpTo("auth") { inclusive = true }
-                                            }
-                                        } else {
-                                            emailError = true
-                                            emailErrorMessage =
-                                                task.exception?.message ?: "Ошибка входа"
-                                        }
-                                    }
-                            } else {
-                                // Регистрация
-                                auth.createUserWithEmailAndPassword(email, password)
-                                    .addOnCompleteListener { task ->
-                                        isLoading = false
-                                        if (task.isSuccessful) {
-                                            // Создаем профиль пользователя в Firestore
-                                            createUserProfile(auth.currentUser?.uid, email)
-                                            navController.navigate("verify") {
-                                                popUpTo("auth") { inclusive = true }
-                                            }
-                                        } else {
-                                            emailError = true
-                                            emailErrorMessage =
-                                                task.exception?.message ?: "Ошибка регистрации"
-                                        }
-                                    }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(54.dp),
-                        enabled = !isLoading,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryColor,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        } else {
-                            Text(
-                                text = if (isLoginMode) stringResource(R.string.login_button)
-                                else stringResource(R.string.register_button),
-                                fontSize = 16.sp
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Переключатель между входом и регистрацией
-            TextButton(
-                onClick = { isLoginMode = !isLoginMode },
-                modifier = Modifier.padding(8.dp)
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = if (isLoginMode) stringResource(R.string.register_button)
-                    else stringResource(R.string.login_button),
-                    color = MaterialTheme.colorScheme.primary
+                    text = if (isLoginMode) stringResource(R.string.login_txt)
+                    else stringResource(R.string.reg_txt),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center
                 )
+
+                Spacer(Modifier.height(24.dp))
+
+                /// Email field
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = {
+                        email = it
+                        emailError = false
+                    },
+                    label = { Text(stringResource(R.string.email_hint)) },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    isError = emailError,
+                    supportingText = {
+                        if (emailError) {
+                            Text(emailErrorMessage)
+                        }
+                    },
+                    singleLine = true, // Запрет переноса на новую строку
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp), // Фиксированная минимальная высота
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { passwordFocusRequester.requestFocus() }
+                    )
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // Password field
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        passwordError = false
+                    },
+                    label = { Text(stringResource(R.string.password_hint)) },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true, // Запрет переноса на новую строку
+                    isError = passwordError,
+                    supportingText = {
+                        if (passwordError) {
+                            Text(stringResource(R.string.password_error))
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp) // Фиксированная минимальная высота
+                        .focusRequester(passwordFocusRequester),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { focusManager.clearFocus() }
+                    )
+                )
+
+                Spacer(Modifier.height(18.dp))
+
+                // Login/Register button
+                Button(
+                    onClick = {
+                        focusManager.clearFocus()
+                        // Валидация
+                        if (!isValidEmail(email)) {
+                            emailError = true
+                            emailErrorMessage = emailErrorText
+                            return@Button
+                        }
+                        if (isValidCorporateEmail(email)) {
+                            emailError = true
+                            emailErrorMessage = corporateErrorText
+                            return@Button
+                        }
+                        if (!isValidPassword(password)) {
+                            passwordError = true
+                            return@Button
+                        }
+                        isLoading = true
+                        //Авторизация
+                        if (isLoginMode) {
+                            auth.signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    isLoading = false
+                                    if (task.isSuccessful) {
+                                        navController.navigate("home") {
+                                            popUpTo("auth") { inclusive = true }
+                                        }
+                                    } else {
+                                        emailError = true
+                                        emailErrorMessage = task.exception?.message ?: "Ошибка входа"
+                                    }
+                                }
+                        } else {
+                            //Регистрация
+                            auth.createUserWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    isLoading = false
+                                    if (task.isSuccessful) {
+                                        createUserProfile(auth.currentUser?.uid, email)
+                                        navController.navigate("verify") {
+                                            popUpTo("auth") { inclusive = true }
+                                        }
+                                    } else {
+                                        emailError = true
+                                        emailErrorMessage = task.exception?.message ?: "Ошибка регистрации"
+                                    }
+                                }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    enabled = !isLoading,
+                    shape = RoundedCornerShape(22),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    } else {
+                        Text(
+                            text = if (isLoginMode) stringResource(R.string.login_button)
+                            else stringResource(R.string.register_button_2),
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                // Switch login/register
+                TextButton(
+                    onClick = { isLoginMode = !isLoginMode },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(
+                        text = if (isLoginMode) stringResource(R.string.register_button)
+                        else stringResource(R.string.login_button),
+                        color = MaterialTheme.colorScheme.secondary,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }

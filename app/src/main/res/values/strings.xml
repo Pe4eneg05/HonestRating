@@ -10,19 +10,24 @@
     <string name="start">Начать</string>
 
     <string name="auth_title">Войдите в систему</string>
-    <string name="email_hint">Корпоративная почта</string>
+    <string name="email_hint">E-mail</string>
     <string name="password_hint">Пароль</string>
     <string name="login_button">Войти</string>
     <string name="register_button">Зарегистрироваться</string>
+    <string name="register_button_2">Подтвердить почту</string>
     <string name="or">или</string>
     <string name="email_error">Некорректный email</string>
     <string name="password_error">Пароль должен содержать минимум 6 символов</string>
     <string name="corporate_email_error">Требуется корпоративная почта</string>
 
-    <string name="verify_email_title">Проверьте почту и подтвердите аккаунт</string>
-    <string name="send_letter_button">Отправить письмо</string>
-    <string name="resend_in_button">Повторно через %1$d с</string>
-    <string name="check_verification_button">Проверить верификацию</string>
+    <string name="login_txt">Авторизация</string>
+    <string name="reg_txt">Регистрация</string>
+    <string name="verify_email_title">Подтвердите e-mail</string>
+    <string name="verify_email_description">У вас на почте ссылка\nНажмите на неё, всё заработает!</string>
+    <string name="send_letter">Отправить письмо</string>
+    <string name="resend_on">Отправить повторно через %d сек</string>
+    <string name="verify_done">Готово</string>
+    <string name="verify_button">Проверить почту</string>
     <string name="name_hint">Имя</string>
     <string name="role_label">Роль:</string>
     <string name="role_hr">HR</string>

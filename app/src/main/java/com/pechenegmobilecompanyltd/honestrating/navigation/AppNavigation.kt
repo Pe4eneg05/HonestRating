@@ -9,12 +9,13 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.pechenegmobilecompanyltd.honestrating.ui.screens.AuthScreen
 import com.pechenegmobilecompanyltd.honestrating.ui.screens.HomeScreen
+import com.pechenegmobilecompanyltd.honestrating.ui.screens.OnboardingScreen
 import com.pechenegmobilecompanyltd.honestrating.ui.screens.ProfileScreen
 import com.pechenegmobilecompanyltd.honestrating.ui.screens.VerifyEmailScreen
 import com.pechenegmobilecompanyltd.honestrating.utils.SessionManager
 
 object Routes {
-    const val SPLASH = "splash"
+    const val ONBOARDING = "onboarding"
     const val AUTH = "auth"
     const val VERIFY = "verify"
     const val PROFILE = "profile"
@@ -28,35 +29,11 @@ fun AppNavigation(
     firestore: FirebaseFirestore,
     sessionManager: SessionManager
 ) {
-    NavHost(navController = navController, startDestination = Routes.SPLASH) {
+    val startDestination = selectStartDestination(auth, sessionManager)
 
-        composable(Routes.SPLASH) {
-            LaunchedEffect(Unit) {
-                val isLoggedIn = sessionManager.isLoggedIn()
-                val isEmailVerified = auth.currentUser?.isEmailVerified == true
-                if (isLoggedIn) {
-                    if (isEmailVerified) {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.SPLASH) { inclusive = true }
-                        }
-                    } else {
-                        navController.navigate(Routes.VERIFY) {
-                            popUpTo(Routes.SPLASH) { inclusive = true }
-                        }
-                    }
-                } else {
-                    navController.navigate(Routes.AUTH) {
-                        popUpTo(Routes.SPLASH) { inclusive = true }
-                    }
-                }
-            }
-        }
-
-        composable(Routes.AUTH) {
-            // Здесь параметр navController передаём в AuthScreen
-            AuthScreen(navController = navController, auth = auth)
-        }
-
+    NavHost(navController = navController, startDestination = startDestination) {
+        composable(Routes.ONBOARDING) { OnboardingScreen(navController = navController) }
+        composable(Routes.AUTH) { AuthScreen(navController = navController, auth = auth) }
         composable(Routes.VERIFY) {
             VerifyEmailScreen(
                 auth = auth,
@@ -68,7 +45,6 @@ fun AppNavigation(
                 }
             )
         }
-
         composable(Routes.PROFILE) {
             ProfileScreen(
                 auth = auth,
@@ -80,9 +56,16 @@ fun AppNavigation(
                 }
             )
         }
+        composable(Routes.HOME) { HomeScreen(navController) }
+    }
+}
 
-        composable(Routes.HOME) {
-            HomeScreen(navController)
-        }
+fun selectStartDestination(auth: FirebaseAuth, sessionManager: SessionManager): String {
+    val user = auth.currentUser
+    return when {
+        user == null -> Routes.ONBOARDING
+        !user.isEmailVerified -> Routes.VERIFY
+        sessionManager.isLoggedIn() -> Routes.HOME
+        else -> Routes.AUTH
     }
 }

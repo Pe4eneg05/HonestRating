@@ -67,6 +67,7 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.3.2")
     implementation("com.github.skydoves:landscapist-glide:2.5.1")
     implementation("com.valentinilk.shimmer:compose-shimmer:1.3.3")
+    implementation("androidx.compose.animation:animation:1.8.3")
 
     // Остальные зависимости
     implementation(libs.lottie.compose.v630)
