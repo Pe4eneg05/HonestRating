@@ -1,12 +1,6 @@
 package com.pechenegmobilecompanyltd.honestrating.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.with
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,11 +18,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +36,7 @@ import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
 import com.pechenegmobilecompanyltd.honestrating.R
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 data class OnboardingPage(
     val title: String,
@@ -48,14 +44,14 @@ data class OnboardingPage(
     val imageRes: Int
 )
 
-@OptIn(ExperimentalPagerApi::class, ExperimentalAnimationApi::class)
+@OptIn(ExperimentalPagerApi::class)
 @Composable
 fun OnboardingScreen(navController: NavController) {
     val pages = listOf(
         OnboardingPage(
             title = stringResource(R.string.onboarding_title_1),
             description = stringResource(R.string.onboarding_desc_1),
-            imageRes = R.drawable.welcome   // ваш PNG, JPEG и т.д.
+            imageRes = R.drawable.welcome
         ),
         OnboardingPage(
             title = stringResource(R.string.onboarding_title_2),
@@ -77,43 +73,59 @@ fun OnboardingScreen(navController: NavController) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Вместо обычного HorizontalPager
         HorizontalPager(
             count = pages.size,
             state = pagerState,
-            modifier = Modifier
-                .weight(1f),
+            modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(horizontal = 16.dp)
-        ) { page ->
-            AnimatedContent(
-                targetState = page,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(350)) with
-                            fadeOut(animationSpec = tween(350))
-                }
-            ) { animatedPage ->
+        ) { pageIndex ->
+            val page = pages[pageIndex]
+            key(page.title) {
+                // Вычисляем смещение для анимации
+                val pageOffset = pagerState.currentPageOffset + pageIndex - pagerState.currentPage
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(40.dp),
+                        .padding(40.dp)
+                        .graphicsLayer {
+                            // Параллакс-эффект для изображений
+                            translationX = pageOffset * size.width * 0.5f
+
+                            // Эффект затухания
+                            alpha = 1f - abs(pageOffset) * 0.5f
+
+                            // Масштабирование
+                            scaleY = 0.9f + (1 - abs(pageOffset)) * 0.1f
+                            scaleX = 0.9f + (1 - abs(pageOffset)) * 0.1f
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Image(
-                        painter = painterResource(id = pages[animatedPage].imageRes),
+                        painter = painterResource(id = page.imageRes),
                         contentDescription = null,
                         modifier = Modifier
                             .size(
-                                when (animatedPage) {
+                                when (pageIndex) {
                                     0 -> 250.dp
                                     1 -> 175.dp
                                     else -> 150.dp
                                 }
                             )
                             .padding(16.dp)
+                            .graphicsLayer {
+                                // Дополнительный параллакс для изображений
+                                translationX = pageOffset * size.width * 0.2f
+
+                                // Увеличиваем плавность для изображения (новое)
+                                alpha = 1f - abs(pageOffset) * 0.3f
+                                scaleX = 0.95f + (1f - abs(pageOffset)) * 0.05f
+                                scaleY = 0.95f + (1f - abs(pageOffset)) * 0.05f
+                            }
                     )
                     Text(
-                        text = pages[animatedPage].title,
+                        text = page.title,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
@@ -121,7 +133,7 @@ fun OnboardingScreen(navController: NavController) {
                         modifier = Modifier.padding(top = 32.dp)
                     )
                     Text(
-                        text = pages[animatedPage].description,
+                        text = page.description,
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
@@ -138,15 +150,14 @@ fun OnboardingScreen(navController: NavController) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // Упрощенный индикатор без анимации цвета
             Row {
                 repeat(pages.size) { index ->
-                    val color by animateColorAsState(
-                        targetValue = if (pagerState.currentPage == index)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                        animationSpec = tween(300)
-                    )
+                    val color = if (pagerState.currentPage == index)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+
                     Box(
                         modifier = Modifier
                             .padding(4.dp)
@@ -160,7 +171,13 @@ fun OnboardingScreen(navController: NavController) {
             Button(
                 onClick = {
                     if (pagerState.currentPage < pages.size - 1) {
-                        scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                        scope.launch {
+                            // Увеличиваем время анимации с 300 до 600 мс
+                            pagerState.animateScrollToPage(
+                                page = pagerState.currentPage + 1,
+                                animationSpec = tween(1200) // Было 300, стало 600
+                            )
+                        }
                     } else {
                         navController.navigate("auth") {
                             popUpTo("onboarding") { inclusive = true }

@@ -69,7 +69,7 @@ fun AuthScreen(
     // Проверка текущего пользователя
     LaunchedEffect(Unit) {
         if (authCore.currentUser != null) {
-            navController.navigate("home") {
+            navController.navigate("companies") {
                 popUpTo("auth") { inclusive = true }
             }
         }
@@ -203,7 +203,7 @@ fun AuthScreen(
                                 .addOnCompleteListener { task ->
                                     isLoading = false
                                     if (task.isSuccessful) {
-                                        navController.navigate("home") {
+                                        navController.navigate("companies") {
                                             popUpTo("auth") { inclusive = true }
                                         }
                                     } else {
@@ -263,7 +263,7 @@ fun AuthScreen(
                     Text(
                         text = if (isLoginMode) stringResource(R.string.register_button)
                         else stringResource(R.string.login_button),
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
