@@ -69,8 +69,7 @@ fun AppNavigation(
             arguments = listOf(navArgument("companyId") { type = NavType.StringType })
         ) { backStackEntry ->
             val companyId = backStackEntry.arguments?.getString("companyId")
-            // Можно передать CompanyScreen(companyId) или показать заглушку
-            CompanyDetailScreen(companyId = companyId)
+            CompanyDetailScreen(companyId)
         }
     }
 }
