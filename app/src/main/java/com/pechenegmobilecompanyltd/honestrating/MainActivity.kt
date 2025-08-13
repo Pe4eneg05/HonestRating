@@ -14,8 +14,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
+    private lateinit var app: HonestRatingApplication
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        app = application as HonestRatingApplication
         setContent {
             HonestRatingTheme {
                 Surface(
@@ -24,7 +27,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "home") {
-                        composable("home") { HomeScreen(navController) }
+                        composable("home") { HomeScreen(navController, app.database) }
                     }
                 }
             }
