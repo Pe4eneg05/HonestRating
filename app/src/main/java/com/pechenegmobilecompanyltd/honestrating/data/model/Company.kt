@@ -9,6 +9,7 @@ data class Company(
     val name: String,
     val inn: String,
     val address: String,
+    val industry: String,
     val description: String,
     val averageRating: Float = 0.0f
 )
