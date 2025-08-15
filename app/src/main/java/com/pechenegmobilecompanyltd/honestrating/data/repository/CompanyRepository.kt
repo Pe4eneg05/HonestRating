@@ -5,15 +5,23 @@ import com.pechenegmobilecompanyltd.honestrating.data.model.Company
 import kotlinx.coroutines.flow.Flow
 
 class CompanyRepository(private val companyDao: CompanyDao) {
-    suspend fun insertCompany(company: Company) {
-        companyDao.insert(company)
-    }
+    suspend fun insertCompany(company: Company) = companyDao.insertCompany(company)
 
-    fun getAllCompanies(): Flow<List<Company>> {
-        return companyDao.getAllCompanies()
-    }
+    suspend fun updateCompanyByInn(
+        inn: String,
+        name: String,
+        address: String,
+        industry: String,
+        description: String,
+        averageRating: Float
+    ) = companyDao.updateCompanyByInn(inn, name, address, industry, description, averageRating)
 
-    fun getCompanyById(id: Int): Flow<Company?> {
-        return companyDao.getCompanyById(id)
-    }
+    suspend fun getCompanyByInn(inn: String): Company? = companyDao.getCompanyByInn(inn)
+
+    fun getAllCompanies(): Flow<List<Company>> = companyDao.getAllCompanies()
+
+    suspend fun updateAverageRating(companyId: Int, averageRating: Float) =
+        companyDao.updateAverageRating(companyId, averageRating)
+
+    suspend fun getCompanyById(id: Int): Company? = companyDao.getCompanyById(id)
 }

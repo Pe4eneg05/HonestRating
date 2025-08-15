@@ -4,30 +4,40 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.pechenegmobilecompanyltd.honestrating.ui.screens.HomeScreen
 import com.pechenegmobilecompanyltd.honestrating.ui.theme.HonestRatingTheme
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.pechenegmobilecompanyltd.honestrating.ui.screens.LoginScreen
+import com.pechenegmobilecompanyltd.honestrating.data.database.HonestRatingDatabase
+import com.google.firebase.auth.FirebaseAuth
+import com.pechenegmobilecompanyltd.honestrating.ui.screens.CompanyDetailsScreen
+import com.pechenegmobilecompanyltd.honestrating.ui.screens.HomeScreen
+import com.pechenegmobilecompanyltd.honestrating.ui.screens.ProfileScreen
 
 class MainActivity : ComponentActivity() {
-    private lateinit var app: HonestRatingApplication
+    private lateinit var db: HonestRatingDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        app = application as HonestRatingApplication
+        db = HonestRatingDatabase.getDatabase(this)
         setContent {
             HonestRatingTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "home") {
-                        composable("home") { HomeScreen(navController, app.database) }
+                    val auth = FirebaseAuth.getInstance()
+                    val startDestination = if (auth.currentUser != null) "home" else "login"
+
+                    NavHost(navController, startDestination = startDestination) {
+                        composable("login") { LoginScreen(navController) }
+                        composable("home") { HomeScreen(navController, db) }
+                        composable("profile") { ProfileScreen(navController) }
+                        composable("company/{companyId}") { backStackEntry ->
+                            val companyId = backStackEntry.arguments?.getString("companyId")?.toInt() ?: 0
+                            CompanyDetailsScreen(navController, companyId)
+                        }
                     }
                 }
             }

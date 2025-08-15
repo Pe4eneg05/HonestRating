@@ -5,32 +5,41 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Black
+import androidx.compose.ui.graphics.Color.Companion.White
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF0288D1),
-    secondary = Color(0xFF26A69A),
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E)
+    primary = Purple80,
+    secondary = PurpleGrey80,
+    tertiary = Pink80
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF0288D1),
-    secondary = Color(0xFF26A69A),
-    background = Color(0xFFF5F5F5),
-    surface = Color(0xFFFFFFFF)
+    primary = Purple40,
+    secondary = PurpleGrey40,
+    tertiary = Pink40,
+    background = White,
+    surface = White,
+    onPrimary = Black,
+    onSecondary = Black,
+    onTertiary = Black,
+    onBackground = Black,
+    onSurface = Black,
 )
 
 @Composable
 fun HonestRatingTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
+    content: @Composable() () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = when {
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = MaterialTheme.typography,
-        shapes = MaterialTheme.shapes,
+        typography = Typography,
         content = content
     )
 }

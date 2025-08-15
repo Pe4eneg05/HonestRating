@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "989983753263",
+    "project_id": "honestratingrf",
+    "storage_bucket": "honestratingrf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989983753263:android:5baeb350a3b815878432da",
+        "android_client_info": {
+          "package_name": "com.pechenegmobilecompanyltd.honestrating"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEYSr0kgDUO2VMBFh6kpFzoCO-HnVdz_0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

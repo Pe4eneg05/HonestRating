@@ -12,6 +12,9 @@ interface ReviewDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(review: Review)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(reviews: List<Review>)
+
     @Query("SELECT * FROM reviews WHERE companyId = :companyId")
     fun getReviewsByCompanyId(companyId: Int): Flow<List<Review>>
 
