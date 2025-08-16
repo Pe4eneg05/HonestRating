@@ -42,6 +42,9 @@ android {
 }
 
 dependencies {
+    implementation 'com.google.android.gms:play-services-base:18.7.2'
+    implementation "androidx.compose.material:material-icons-extended:1.7.8"
+
     implementation 'com.google.firebase:firebase-auth:23.0.0'
     implementation 'com.google.firebase:firebase-firestore:25.0.0' // Исправлено с firebase-firestore-ktx
     implementation 'com.google.firebase:firebase-analytics:22.0.0'
@@ -60,6 +63,7 @@ dependencies {
     implementation libs.androidx.credentials
     implementation libs.androidx.credentials.play.services.auth
     implementation libs.googleid
+    implementation libs.androidx.animation.core.lint
     kapt libs.room.compiler
     implementation libs.androidx.room.ktx
 
