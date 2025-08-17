@@ -21,6 +21,7 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import android.util.Patterns
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,6 +30,7 @@ fun LoginScreen(navController: NavController) {
     val auth = FirebaseAuth.getInstance()
     val firestore = FirebaseFirestore.getInstance()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -46,15 +48,15 @@ fun LoginScreen(navController: NavController) {
 
     fun validateInput(): Boolean {
         if (email.isEmpty()) {
-            errorMessage = "Введите E-mail"
+            errorMessage = "Email не может быть пустым"
             return false
         }
         if (password.isEmpty()) {
-            errorMessage = "Введите пароль"
+            errorMessage = "Пароль не может быть пустым"
             return false
         }
         if (isRegistration && confirmPassword.isEmpty()) {
-            errorMessage = "Введите подтверждение пароля"
+            errorMessage = "Подтверждение пароля не может быть пустым"
             return false
         }
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
@@ -63,7 +65,7 @@ fun LoginScreen(navController: NavController) {
         }
         val domain = email.substringAfterLast("@")
         if (domain !in allowedDomains) {
-            errorMessage = "Несуществующий домен почты"
+            errorMessage = "Домены доступны: ${allowedDomains.joinToString(", ")}"
             return false
         }
         if (password.length < 6) {
@@ -75,6 +77,26 @@ fun LoginScreen(navController: NavController) {
             return false
         }
         return true
+    }
+
+    // Создание или проверка документа при входе
+    LaunchedEffect(auth.currentUser) {
+        val user = auth.currentUser
+        if (user != null && user.isEmailVerified) {
+            val userId = user.uid
+            scope.launch {
+                try {
+                    val document = firestore.collection("users").document(userId).get().await()
+                    if (!document.exists()) {
+                        firestore.collection("users").document(userId)
+                            .set(mapOf("email" to (user.email ?: ""), "name" to "Пользователь"))
+                            .await()
+                    }
+                } catch (e: Exception) {
+                    errorMessage = "Ошибка инициализации данных: ${e.message}"
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -148,36 +170,47 @@ fun LoginScreen(navController: NavController) {
                 Button(
                     onClick = {
                         if (validateInput() && (!isRegistration || consent)) {
-                            if (isRegistration) {
-                                auth.createUserWithEmailAndPassword(email, password)
-                                    .addOnCompleteListener { task ->
-                                        if (task.isSuccessful) {
-                                            val user = task.result?.user
-                                            user?.sendEmailVerification()
-                                            firestore.collection("users").document(user?.uid ?: "")
-                                                .set(mapOf("email" to email, "name" to "Пользователь"))
-                                            errorMessage = "Подтвердите email для активации"
-                                        } else {
-                                            errorMessage = task.exception?.message ?: "Ошибка регистрации"
+                            scope.launch {
+                                if (isRegistration) {
+                                    auth.createUserWithEmailAndPassword(email, password)
+                                        .addOnCompleteListener { task ->
+                                            if (task.isSuccessful) {
+                                                val user = task.result?.user
+                                                user?.sendEmailVerification()
+                                                if (user != null) {
+                                                    scope.launch {
+                                                        try {
+                                                            firestore.collection("users").document(user.uid)
+                                                                .set(mapOf("email" to (user.email ?: ""), "name" to "Пользователь"))
+                                                                .await()
+                                                        } catch (e: Exception) {
+                                                            errorMessage = "Ошибка сохранения данных: ${e.message}"
+                                                        }
+                                                    }
+                                                }
+                                                errorMessage = "Подтвердите email для активации"
+                                            } else {
+                                                errorMessage = task.exception?.message ?: "Ошибка регистрации"
+                                            }
                                         }
-                                    }
-                            } else {
-                                auth.signInWithEmailAndPassword(email, password)
-                                    .addOnCompleteListener { task ->
-                                        if (task.isSuccessful) {
-                                            val user = task.result?.user
-                                            if (user?.isEmailVerified == true) {
-                                                navController.navigate("home") {
-                                                    popUpTo("login") { inclusive = true }
+                                } else {
+                                    auth.signInWithEmailAndPassword(email, password)
+                                        .addOnCompleteListener { task ->
+                                            if (task.isSuccessful) {
+                                                val user = task.result?.user
+                                                if (user?.isEmailVerified == true) {
+                                                    navController.navigate("home") {
+                                                        popUpTo("login") { inclusive = true }
+                                                    }
+                                                } else {
+                                                    errorMessage = "Подтвердите email. Повторить отправку?"
+                                                    user?.sendEmailVerification()
                                                 }
                                             } else {
-                                                errorMessage = "Подтвердите email. Повторить отправку?"
-                                                user?.sendEmailVerification()
+                                                errorMessage = task.exception?.message ?: "Ошибка входа"
                                             }
-                                        } else {
-                                            errorMessage = task.exception?.message ?: "Ошибка входа"
                                         }
-                                    }
+                                }
                             }
                         }
                     },
