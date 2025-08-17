@@ -11,33 +11,35 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.firebase.firestore.FirebaseFirestore
+import com.pechenegmobilecompanyltd.honestrating.data.dao.CompanyDao
 import com.pechenegmobilecompanyltd.honestrating.data.database.HonestRatingDatabase
-import com.pechenegmobilecompanyltd.honestrating.data.model.Company
+import com.pechenegmobilecompanyltd.honestrating.data.repository.CompanyRepository
+import com.pechenegmobilecompanyltd.honestrating.data.repository.ReviewRepository
 import com.pechenegmobilecompanyltd.honestrating.ui.viewmodel.HomeViewModel
 import com.pechenegmobilecompanyltd.honestrating.ui.viewmodel.HomeViewModelFactory
 import com.valentinilk.shimmer.ShimmerBounds
 import com.valentinilk.shimmer.rememberShimmer
 import com.valentinilk.shimmer.shimmer
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlin.collections.emptyList
-import kotlin.collections.mapOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
-    val firestore = FirebaseFirestore.getInstance()
+
     val viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModelFactory(database.companyDao(), database.reviewDao())
+        factory = HomeViewModelFactory(
+            companyRepository = CompanyRepository(database.companyDao()),
+            ReviewRepository(database.reviewDao())
+        )
     )
     val companies by viewModel.companies.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -47,6 +49,9 @@ fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
     val cities = listOf("Москва", "Санкт-Петербург", "Новосибирск")
     val industries = listOf("IT", "Retail", "Производство")
     var isDataLoaded by remember { mutableStateOf(false) }
+
+    val firestore = FirebaseFirestore.getInstance()
+    val scope = rememberCoroutineScope()
 
     // Тестовые данные для компаний (добавляются в Firestore)
     val testCompanies = listOf(
@@ -78,19 +83,10 @@ fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
         isDataLoaded = false
         try {
             for (company in testCompanies) {
-                firestore.collection("companies").document(company["inn"] as String).set(company).await()
+                firestore.collection("companies").document(company["inn"] as String).set(company)
+                    .await()
             }
-            val snapshot = firestore.collection("companies").get().await()
-            viewModel.updateCompanies(snapshot.documents.map { doc ->
-                Company(
-                    id = doc.id.toIntOrNull() ?: 0,
-                    inn = doc.getString("inn") ?: "",
-                    name = doc.getString("name") ?: "",
-                    address = doc.getString("address") ?: "",
-                    industry = doc.getString("industry") ?: "",
-                    description = doc.getString("description") ?: ""
-                )
-            })
+            // Данные уже подтягиваются через ViewModel из Firestore
         } catch (e: Exception) {
             // Обработка ошибки
         } finally {
@@ -109,7 +105,9 @@ fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
             if (!loaded) {
                 HomeShimmerPlaceholder()
             } else {
-                Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
+                Column(modifier = Modifier
+                    .padding(paddingValues)
+                    .padding(16.dp)) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { query ->
@@ -118,14 +116,25 @@ fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
                         },
                         label = { Text("Поиск по названию") },
                         modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Color(0xFF2196F3)) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Search,
+                                contentDescription = null,
+                                tint = Color(0xFF2196F3)
+                            )
+                        },
                         singleLine = true
                     )
                     Button(
                         onClick = { showFilters = true },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800), contentColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF9800),
+                            contentColor = Color.White
+                        )
                     ) {
                         Text("Фильтры", fontSize = 16.sp)
                     }
@@ -167,7 +176,11 @@ fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
                     modifier = Modifier.padding(bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Город: ", modifier = Modifier.padding(end = 8.dp), color = Color(0xFF2196F3))
+                    Text(
+                        "Город: ",
+                        modifier = Modifier.padding(end = 8.dp),
+                        color = Color(0xFF2196F3)
+                    )
                     Box {
                         Text(
                             text = selectedCity ?: "Все",
@@ -206,7 +219,11 @@ fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
                     modifier = Modifier.padding(bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Отрасль: ", modifier = Modifier.padding(end = 8.dp), color = Color(0xFF2196F3))
+                    Text(
+                        "Отрасль: ",
+                        modifier = Modifier.padding(end = 8.dp),
+                        color = Color(0xFF2196F3)
+                    )
                     Box {
                         Text(
                             text = selectedIndustry ?: "Все",
@@ -246,7 +263,10 @@ fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800), contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFF9800),
+                        contentColor = Color.White
+                    )
                 ) {
                     Text("Применить", fontSize = 16.sp)
                 }
@@ -268,7 +288,13 @@ fun HomeShimmerPlaceholder() {
                 .shimmer(shimmerInstance)
                 .background(Color.LightGray.copy(alpha = 0.36f)),
             enabled = false,
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Color(0xFF2196F3).copy(alpha = 0.36f)) },
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = null,
+                    tint = Color(0xFF2196F3).copy(alpha = 0.36f)
+                )
+            },
             singleLine = true
         )
         Button(
@@ -279,7 +305,10 @@ fun HomeShimmerPlaceholder() {
                 .shimmer(shimmerInstance)
                 .background(Color.LightGray.copy(alpha = 0.36f)),
             shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800).copy(alpha = 0.36f), contentColor = Color.White.copy(alpha = 0.36f)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFFF9800).copy(alpha = 0.36f),
+                contentColor = Color.White.copy(alpha = 0.36f)
+            ),
             enabled = false
         ) {
             Text("Фильтры", fontSize = 16.sp, color = Color.White.copy(alpha = 0.36f))

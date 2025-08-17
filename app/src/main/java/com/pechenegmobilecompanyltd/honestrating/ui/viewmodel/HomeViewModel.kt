@@ -2,10 +2,10 @@ package com.pechenegmobilecompanyltd.honestrating.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pechenegmobilecompanyltd.honestrating.data.dao.CompanyDao
-import com.pechenegmobilecompanyltd.honestrating.data.dao.ReviewDao
 import com.pechenegmobilecompanyltd.honestrating.data.model.Company
 import com.pechenegmobilecompanyltd.honestrating.data.model.Review
+import com.pechenegmobilecompanyltd.honestrating.data.repository.CompanyRepository
+import com.pechenegmobilecompanyltd.honestrating.data.repository.ReviewRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,10 +13,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import java.util.Date
 
 class HomeViewModel(
-    private val companyRepository: CompanyDao,
-    private val reviewRepository: ReviewDao
+    private val companyRepository: CompanyRepository,
+    private val reviewRepository: ReviewRepository
 ) : ViewModel() {
     private val _companies = MutableStateFlow<List<Company>>(emptyList())
     val companies: StateFlow<List<Company>> get() = _companies
@@ -28,13 +29,13 @@ class HomeViewModel(
     private val _reviews = MutableStateFlow<List<Review>>(emptyList())
 
     init {
-        loadCompaniesFromFirestore()
+        loadCompanies()
         observeFilters()
     }
 
-    private fun loadCompaniesFromFirestore() {
+    private fun loadCompanies() {
         viewModelScope.launch {
-            companyRepository.getAllCompaniesFromFirestore().collectLatest { companies ->
+            companyRepository.getAllCompanies().collectLatest { companies ->
                 _companies.value = applyFilters(companies)
             }
         }
@@ -44,7 +45,7 @@ class HomeViewModel(
     private fun observeFilters() {
         viewModelScope.launch {
             combine(
-                companyRepository.getAllCompaniesFromFirestore().debounce(300),
+                companyRepository.getAllCompanies().debounce(300),
                 _searchQuery.debounce(300),
                 _cityFilter.debounce(300),
                 _industryFilter.debounce(300)
@@ -84,19 +85,31 @@ class HomeViewModel(
     fun addOrUpdateCompanies(companies: List<Company>) {
         viewModelScope.launch {
             companies.forEach { company ->
-                companyRepository.addOrUpdateCompanyInFirestore(company)
+                val existingCompany = companyRepository.getCompanyByInn(company.inn)
+                if (existingCompany != null) {
+                    companyRepository.updateCompanyByInn(
+                        inn = company.inn,
+                        name = company.name,
+                        address = company.address,
+                        industry = company.industry,
+                        description = company.description,
+                        averageRating = company.averageRating
+                    )
+                } else {
+                    companyRepository.insertCompany(company)
+                }
             }
         }
     }
 
     fun selectCompany(company: Company) {
         _selectedCompany.value = company
-        loadReviewsForCompany(company.id ?: 0)
+        loadReviewsForCompany(company.id)
     }
 
     private fun loadReviewsForCompany(companyId: Int) {
         viewModelScope.launch {
-            reviewRepository.getReviewsByCompanyIdFromFirestore(companyId).collectLatest { reviews ->
+            reviewRepository.getReviewsByCompanyId(companyId).collectLatest { reviews ->
                 _reviews.value = reviews
                 updateCompanyAverageRating(companyId)
             }
@@ -105,8 +118,8 @@ class HomeViewModel(
 
     fun addReview(review: Review) {
         viewModelScope.launch {
-            reviewRepository.addReviewToFirestore(review)
-            loadReviewsForCompany(review.companyId)
+            reviewRepository.insert(review)
+            loadReviewsForCompany(review.companyId) // Обновляем отзывы и рейтинг
         }
     }
 
@@ -114,10 +127,13 @@ class HomeViewModel(
         val reviews = _reviews.value
         if (reviews.isNotEmpty()) {
             val averageRating = reviews.map { it.rating }.average().toFloat()
-            companyRepository.updateAverageRatingInFirestore(companyId, averageRating)
-            val updatedCompany = companyRepository.getCompanyByIdFromFirestore(companyId)
+            companyRepository.updateAverageRating(companyId, averageRating)
+            // Обновляем список компаний с новым рейтингом
+            val updatedCompany = companyRepository.getCompanyById(companyId)
             updatedCompany?.let { company ->
-                _companies.value = _companies.value.map { if (it.id == company.id) company else it }
+                _companies.value = _companies.value.map {
+                    if (it.id == company.id) company else it
+                }
             }
         }
     }

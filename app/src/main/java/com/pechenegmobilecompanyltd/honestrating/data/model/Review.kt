@@ -20,7 +20,7 @@ import java.util.Date
 )
 data class Review(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    @ForeignKey(entity = Company::class, parentColumns = ["id"], childColumns = ["companyId"]) val companyId: Int,
+    val companyId: Int,
     val userId: String,
     val text: String,
     val rating: Float,
