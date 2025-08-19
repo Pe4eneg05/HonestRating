@@ -42,6 +42,12 @@ android {
 }
 
 dependencies {
+    implementation "androidx.compose.ui:ui:1.9.0"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2"
+
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2"
+
     implementation("com.valentinilk.shimmer:compose-shimmer:1.3.3")
     implementation 'com.google.android.gms:play-services-base:18.7.2'
     implementation "androidx.compose.material:material-icons-extended:1.7.8"
@@ -60,13 +66,11 @@ dependencies {
     implementation libs.androidx.navigation.compose
 
     // Room
-    implementation libs.androidx.room.runtime
     implementation libs.androidx.credentials
     implementation libs.androidx.credentials.play.services.auth
     implementation libs.googleid
     implementation libs.androidx.animation.core.lint
     kapt libs.room.compiler
-    implementation libs.androidx.room.ktx
 
     // Network
     implementation libs.retrofit

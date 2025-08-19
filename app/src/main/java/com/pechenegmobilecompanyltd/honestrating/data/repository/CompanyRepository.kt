@@ -1,26 +1,31 @@
 package com.pechenegmobilecompanyltd.honestrating.data.repository
 
-import com.pechenegmobilecompanyltd.honestrating.data.dao.CompanyDao
+import com.google.firebase.firestore.FirebaseFirestore
 import com.pechenegmobilecompanyltd.honestrating.data.model.Company
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 
-class CompanyRepository(private val companyDao: CompanyDao) {
-    suspend fun insertCompany(company: Company) = companyDao.insertCompany(company)
+class CompanyRepository {
+    private val firestore = FirebaseFirestore.getInstance()
+    private val companiesCollection = firestore.collection("companies")
 
-    suspend fun updateCompanyByInn(
-        inn: String,
-        name: String,
-        address: String,
-        industry: String,
-        description: String,
-        averageRating: Float
-    ) = companyDao.updateCompanyByInn(inn, name, address, industry, description, averageRating)
+    fun getAllCompanies(): Flow<List<Company>> = callbackFlow {
+        val listenerRegistration = companiesCollection.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                close(e)
+                return@addSnapshotListener
+            }
+            val companies = snapshot?.documents?.mapNotNull { doc ->
+                doc.toObject(Company::class.java)?.copy(inn = doc.id) // Убедимся, что inn берется из ID документа
+            } ?: emptyList()
+            trySend(companies).isSuccess
+        }
+        awaitClose { listenerRegistration.remove() }
+    }
 
-    suspend fun getCompanyByInn(inn: String): Company? = companyDao.getCompanyByInn(inn)
-
-    fun getAllCompanies(): Flow<List<Company>> = companyDao.getAllCompanies()
-
-    suspend fun updateAverageRating(companyId: Int, averageRating: Float) = companyDao.updateAverageRating(companyId, averageRating)
-
-    suspend fun getCompanyById(id: Int): Company? = companyDao.getCompanyById(id)
+    suspend fun updateAverageRating(inn: String, averageRating: Float) {
+        companiesCollection.document(inn).update("averageRating", averageRating).await()
+    }
 }

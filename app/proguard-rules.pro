@@ -19,3 +19,17 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# Keep Firestore model classes
+-keepclassmembers class com.pechenegmobilecompanyltd.honestrating.data.model.** {
+    @com.google.firebase.firestore.PropertyName <fields>;
+    <init>();
+}
+
+# Keep data class constructors
+-keepclassmembers class com.pechenegmobilecompanyltd.honestrating.data.model.** {
+    <init>();
+}
+
+# Prevent obfuscation of Firestore-related classes
+-keep class com.google.firebase.firestore.** { *; }
+-dontwarn com.google.firebase.firestore.**

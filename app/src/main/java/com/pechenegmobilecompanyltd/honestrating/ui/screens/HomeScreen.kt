@@ -3,95 +3,90 @@ package com.pechenegmobilecompanyltd.honestrating.ui.screens
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.google.firebase.firestore.FirebaseFirestore
-import com.pechenegmobilecompanyltd.honestrating.data.dao.CompanyDao
-import com.pechenegmobilecompanyltd.honestrating.data.database.HonestRatingDatabase
-import com.pechenegmobilecompanyltd.honestrating.data.repository.CompanyRepository
-import com.pechenegmobilecompanyltd.honestrating.data.repository.ReviewRepository
 import com.pechenegmobilecompanyltd.honestrating.ui.viewmodel.HomeViewModel
-import com.pechenegmobilecompanyltd.honestrating.ui.viewmodel.HomeViewModelFactory
 import com.valentinilk.shimmer.ShimmerBounds
 import com.valentinilk.shimmer.rememberShimmer
 import com.valentinilk.shimmer.shimmer
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
-
-    val viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModelFactory(
-            companyRepository = CompanyRepository(database.companyDao()),
-            ReviewRepository(database.reviewDao())
-        )
-    )
+fun HomeScreen(navController: NavController, viewModel: HomeViewModel) {
     val companies by viewModel.companies.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var showFilters by remember { mutableStateOf(false) }
     var selectedCity by remember { mutableStateOf<String?>(null) }
     var selectedIndustry by remember { mutableStateOf<String?>(null) }
     val cities = listOf("Москва", "Санкт-Петербург", "Новосибирск")
     val industries = listOf("IT", "Retail", "Производство")
-    var isDataLoaded by remember { mutableStateOf(false) }
-
-    val firestore = FirebaseFirestore.getInstance()
-    val scope = rememberCoroutineScope()
 
     // Тестовые данные для компаний (добавляются в Firestore)
-    val testCompanies = listOf(
-        mapOf(
-            "inn" to "1234567890",
-            "name" to "Тестовая компания Новосиб",
-            "address" to "Новосибирск",
-            "industry" to "IT",
-            "description" to "Описание"
-        ),
-        mapOf(
-            "inn" to "0987654321",
-            "name" to "Тестовая компания Москва",
-            "address" to "Москва",
-            "industry" to "Retail",
-            "description" to "Описание"
-        ),
-        mapOf(
-            "inn" to "1122334455",
-            "name" to "Тестовая компания Санкт-Петербург",
-            "address" to "Санкт-Петербург",
-            "industry" to "Производство",
-            "description" to "Описание"
-        )
-    )
+//    val testCompanies = listOf(
+//        mapOf(
+//            "inn" to "1234567890",
+//            "name" to "Тестовая компания Новосиб",
+//            "address" to "Новосибирск",
+//            "industry" to "IT",
+//            "description" to "Описание"
+//        ),
+//        mapOf(
+//            "inn" to "0987654321",
+//            "name" to "Тестовая компания Москва",
+//            "address" to "Москва",
+//            "industry" to "Retail",
+//            "description" to "Описание"
+//        ),
+//        mapOf(
+//            "inn" to "1122334455",
+//            "name" to "Тестовая компания Санкт-Петербург",
+//            "address" to "Санкт-Петербург",
+//            "industry" to "Производство",
+//            "description" to "Описание"
+//        )
+//    )
 
-    // Загрузка и добавление тестовых компаний в Firestore
     LaunchedEffect(Unit) {
-        isDataLoaded = false
-        try {
-            for (company in testCompanies) {
-                firestore.collection("companies").document(company["inn"] as String).set(company)
-                    .await()
-            }
-            // Данные уже подтягиваются через ViewModel из Firestore
-        } catch (e: Exception) {
-            // Обработка ошибки
-        } finally {
-            isDataLoaded = true
-        }
+        viewModel.loadCompanies()
     }
 
     Scaffold(
@@ -101,13 +96,19 @@ fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
             )
         }
     ) { paddingValues ->
-        Crossfade(targetState = isDataLoaded, label = "HomeCrossfade") { loaded ->
+        Crossfade(targetState = isLoading, label = "HomeCrossfade") { loaded ->
             if (!loaded) {
                 HomeShimmerPlaceholder()
+            } else if (error != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Ошибка: $error", color = Color.Red)
+                }
             } else {
-                Column(modifier = Modifier
-                    .padding(paddingValues)
-                    .padding(16.dp)) {
+                Column(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .padding(16.dp)
+                ) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { query ->
@@ -144,7 +145,7 @@ fun HomeScreen(navController: NavController, database: HonestRatingDatabase) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = 8.dp)
-                                    .clickable { navController.navigate("company/${company.id}") },
+                                    .clickable { navController.navigate("company/${company.inn}") },
                                 shape = RoundedCornerShape(8.dp),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                             ) {

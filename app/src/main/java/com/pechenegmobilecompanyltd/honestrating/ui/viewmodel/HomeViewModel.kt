@@ -21,7 +21,10 @@ class HomeViewModel(
 ) : ViewModel() {
     private val _companies = MutableStateFlow<List<Company>>(emptyList())
     val companies: StateFlow<List<Company>> get() = _companies
-
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
     private val _searchQuery = MutableStateFlow("")
     private val _cityFilter = MutableStateFlow<String?>(null)
     private val _industryFilter = MutableStateFlow<String?>(null)
@@ -33,11 +36,32 @@ class HomeViewModel(
         observeFilters()
     }
 
-    private fun loadCompanies() {
+    fun loadCompanies() {
         viewModelScope.launch {
-            companyRepository.getAllCompanies().collectLatest { companies ->
-                _companies.value = applyFilters(companies)
+            _isLoading.value = true
+            _error.value = null
+            try {
+                companyRepository.getAllCompanies().collectLatest { companies ->
+                    _companies.value = applyFilters(companies)
+                }
+            } catch (e: Exception) {
+                _error.value = "Ошибка загрузки данных: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
+        }
+    }
+
+    private fun applyFilters(
+        companies: List<Company>,
+        query: String = _searchQuery.value,
+        city: String? = _cityFilter.value,
+        industry: String? = _industryFilter.value
+    ): List<Company> {
+        return companies.filter { company ->
+            (query.isEmpty() || company.name.contains(query, ignoreCase = true)) &&
+                    (city == null || company.address.contains(city, ignoreCase = true)) &&
+                    (industry == null || company.industry.contains(industry, ignoreCase = true))
         }
     }
 
@@ -69,72 +93,47 @@ class HomeViewModel(
         _industryFilter.value = industry
     }
 
-    private fun applyFilters(
-        companies: List<Company>,
-        query: String = _searchQuery.value,
-        city: String? = _cityFilter.value,
-        industry: String? = _industryFilter.value
-    ): List<Company> {
-        return companies.filter { company ->
-            (query.isEmpty() || company.name.contains(query, ignoreCase = true)) &&
-                    (city == null || company.address.contains(city, ignoreCase = true)) &&
-                    (industry == null || company.industry.contains(industry, ignoreCase = true))
-        }
-    }
-
-    fun addOrUpdateCompanies(companies: List<Company>) {
-        viewModelScope.launch {
-            companies.forEach { company ->
-                val existingCompany = companyRepository.getCompanyByInn(company.inn)
-                if (existingCompany != null) {
-                    companyRepository.updateCompanyByInn(
-                        inn = company.inn,
-                        name = company.name,
-                        address = company.address,
-                        industry = company.industry,
-                        description = company.description,
-                        averageRating = company.averageRating
-                    )
-                } else {
-                    companyRepository.insertCompany(company)
-                }
-            }
-        }
-    }
-
     fun selectCompany(company: Company) {
         _selectedCompany.value = company
-        loadReviewsForCompany(company.id)
+        loadReviewsForCompany(company.inn)
     }
 
-    private fun loadReviewsForCompany(companyId: Int) {
+    private fun loadReviewsForCompany(companyInn: String) {
         viewModelScope.launch {
-            reviewRepository.getReviewsByCompanyId(companyId).collectLatest { reviews ->
-                _reviews.value = reviews
-                updateCompanyAverageRating(companyId)
+            _isLoading.value = true
+            try {
+                reviewRepository.getReviewsByCompanyInn(companyInn).collectLatest { reviews ->
+                    _reviews.value = reviews
+                    updateCompanyAverageRating(companyInn)
+                }
+            } catch (e: Exception) {
+                _error.value = "Ошибка загрузки отзывов: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
     fun addReview(review: Review) {
         viewModelScope.launch {
-            reviewRepository.insert(review)
-            loadReviewsForCompany(review.companyId) // Обновляем отзывы и рейтинг
+            _isLoading.value = true
+            try {
+                reviewRepository.addReview(review)
+                loadReviewsForCompany(review.companyId.toString())
+            } catch (e: Exception) {
+                _error.value = "Ошибка добавления отзыва: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
-    private suspend fun updateCompanyAverageRating(companyId: Int) {
+    private suspend fun updateCompanyAverageRating(companyInn: String) {
         val reviews = _reviews.value
         if (reviews.isNotEmpty()) {
             val averageRating = reviews.map { it.rating }.average().toFloat()
-            companyRepository.updateAverageRating(companyId, averageRating)
-            // Обновляем список компаний с новым рейтингом
-            val updatedCompany = companyRepository.getCompanyById(companyId)
-            updatedCompany?.let { company ->
-                _companies.value = _companies.value.map {
-                    if (it.id == company.id) company else it
-                }
-            }
+            companyRepository.updateAverageRating(companyInn, averageRating)
+            loadCompanies() // Перезагрузка компаний для обновления рейтинга
         }
     }
 
